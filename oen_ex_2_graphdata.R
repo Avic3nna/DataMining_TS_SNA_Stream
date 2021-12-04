@@ -1,0 +1,116 @@
+### Exercise 2
+#https://kateto.net/networks-r-igraph
+
+rm(list=ls())
+set.seed(1337)
+
+packages_used = c("rstudioapi",
+                  "igraph")
+
+for(package in packages_used){
+  if(package %in% rownames(installed.packages()) == FALSE) {
+    install.packages(package)
+  }
+}
+
+setwd_current_path = function(){
+  library(rstudioapi)
+  current_path = getActiveDocumentContext()$path
+  setwd(dirname(current_path)) #get this current folder
+  print(getwd())
+}
+setwd_current_path()
+
+library(igraph)
+
+source('./oen_graphfunctions.R')
+
+
+#load nodes and links
+nodes = read.csv("./Data/netscix2016/Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
+links = read.csv("./Data/netscix2016/Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
+
+head(nodes)
+head(links)
+nrow(nodes)
+length(unique(nodes$id))
+nrow(links)
+nrow(unique(links[,c("from", "to")]))
+links = aggregate(links[,3], links[,-3], sum)
+links = links[order(links$from, links$to),]
+colnames(links)[4] = "weight"
+rownames(links) = NULL
+
+
+
+#plot the graph
+net <- graph_from_data_frame(d=links, vertices=nodes, directed=T) 
+
+class(net)
+
+plot(net, edge.arrow.size=.4,vertex.label=NA)
+
+#remove loops 
+net <- simplify(net, remove.multiple = F, remove.loops = T)
+plot(net, edge.arrow.size=.4,vertex.label=NA)
+
+
+#save edge list etc
+as_edgelist(net, names=T)
+
+as_adjacency_matrix(net, attr="weight")
+
+
+
+
+## As the net is an object, it can be altered like this
+
+# Generate colors based on media type:
+
+colrs <- c("gray50", "tomato", "gold")
+
+V(net)$color <- colrs[V(net)$media.type]
+
+
+
+# Set node size based on audience size:
+
+V(net)$size <- V(net)$audience.size*0.7
+
+
+
+# The labels are currently node IDs.
+
+# Setting them to NA will render no labels:
+
+V(net)$label.color <- "black"
+
+V(net)$label <- NA
+
+
+
+# Set edge width based on weight:
+
+E(net)$width <- E(net)$weight/6
+
+
+
+#change arrow size and edge color:
+
+E(net)$arrow.size <- .2
+
+E(net)$edge.color <- "gray80"
+
+
+
+E(net)$width <- 1+E(net)$weight/12
+
+x11()
+plot(net, edge.arrow.size=.4, edge.curved=.1, vertex.label=V(net)$media, vertex.label.color="black") 
+
+legend(x=-1.5, y=-1.1, c("Newspaper","Television", "Online News"), pch=21,
+       
+       col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
+
+
+lcc_list = lcc(links, nodes)
