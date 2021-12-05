@@ -48,17 +48,17 @@ net <- graph_from_data_frame(d=links, vertices=nodes, directed=T)
 
 class(net)
 
-plot(net, edge.arrow.size=.4,vertex.label=NA)
+#plot(net, edge.arrow.size=.4,vertex.label=NA)
 
 #remove loops 
-net <- simplify(net, remove.multiple = F, remove.loops = T)
-plot(net, edge.arrow.size=.4,vertex.label=NA)
+#net <- simplify(net, remove.multiple = F, remove.loops = T)
+#plot(net, edge.arrow.size=.4,vertex.label=NA)
 
 
 #save edge list etc
-as_edgelist(net, names=T)
+edgelist = as_edgelist(net, names=T)
 
-as_adjacency_matrix(net, attr="weight")
+adjacency = as_adjacency_matrix(net, attr="weight")
 
 
 
@@ -75,7 +75,7 @@ V(net)$color <- colrs[V(net)$media.type]
 
 # Set node size based on audience size:
 
-V(net)$size <- V(net)$audience.size*0.7
+#V(net)$size <- V(net)$audience.size*0.7
 
 
 
@@ -91,7 +91,7 @@ V(net)$label <- NA
 
 # Set edge width based on weight:
 
-E(net)$width <- E(net)$weight/6
+#E(net)$width <- E(net)$weight/6
 
 
 
@@ -106,11 +106,26 @@ E(net)$edge.color <- "gray80"
 E(net)$width <- 1+E(net)$weight/12
 
 x11()
-plot(net, edge.arrow.size=.4, edge.curved=.1, vertex.label=V(net)$media, vertex.label.color="black") 
+plot(net, edge.arrow.size=.4, edge.curved=.1, vertex.label=V(net), vertex.label.color="black") 
 
 legend(x=-1.5, y=-1.1, c("Newspaper","Television", "Online News"), pch=21,
        
        col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
 
 
+
+# 
+# #3rd party degree per node 
+# degree(
+#   net,
+#   v = V(net),
+#   mode ="total",
+#   loops = TRUE,
+#   normalized = FALSE
+# )
+
 lcc_list = lcc(links, nodes)
+dc = degree_centrality(links, nodes)
+dp = degree_prestige(links, nodes)
+
+greg = gregariousness(links,nodes)
