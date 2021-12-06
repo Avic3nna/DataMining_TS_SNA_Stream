@@ -44,88 +44,111 @@ rownames(links) = NULL
 
 
 #plot the graph
-net <- graph_from_data_frame(d=links, vertices=nodes, directed=T) 
+dir_net = graph_from_data_frame(d=links, vertices=nodes, directed=T)
+undir_net = graph_from_data_frame(d=links, vertices=nodes, directed=F)
 
-class(net)
-
-#plot(net, edge.arrow.size=.4,vertex.label=NA)
-
-#remove loops 
-#net <- simplify(net, remove.multiple = F, remove.loops = T)
-#plot(net, edge.arrow.size=.4,vertex.label=NA)
-
-
-#save edge list etc
-edgelist = as_edgelist(net, names=T)
-
-adjacency = as_adjacency_matrix(net, attr="weight")
-
-
-
-
-## As the net is an object, it can be altered like this
-
-# Generate colors based on media type:
-
-colrs <- c("gray50", "tomato", "gold")
-
-V(net)$color <- colrs[V(net)$media.type]
-
-
-
-# Set node size based on audience size:
-
-#V(net)$size <- V(net)$audience.size*0.7
-
-
-
-# The labels are currently node IDs.
-
-# Setting them to NA will render no labels:
-
-V(net)$label.color <- "black"
-
-V(net)$label <- NA
-
-
-
-# Set edge width based on weight:
-
-#E(net)$width <- E(net)$weight/6
-
-
-
-#change arrow size and edge color:
-
-E(net)$arrow.size <- .2
-
-E(net)$edge.color <- "gray80"
-
-
-
-E(net)$width <- 1+E(net)$weight/12
+#remove duplicates
+undir_net <- simplify(undir_net, remove.multiple = T, remove.loops = T)
 
 x11()
-plot(net, edge.arrow.size=.4, edge.curved=.1, vertex.label=V(net), vertex.label.color="black") 
+plot(undir_net)
 
-legend(x=-1.5, y=-1.1, c("Newspaper","Television", "Online News"), pch=21,
-       
-       col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
+
+#get all the edges (node-node) of the undirected graph
+edgelist = as_edgelist(undir_net, names=T)
+
+lcc_list = lcc(edgelist)
+#transitivity(undir_net, type = 'local') #lcc confirmation
+dc = degree_centrality(edgelist)
+
+degree(
+  undir_net,
+  v = V(undir_net),
+  mode ="total",
+  loops = TRUE,
+  normalized = FALSE
+)/16 #dc confirmation, max degree = 16
+
+#using the directed net
+dp = degree_prestige(links, nodes)
+degree(dir_net, mode="in")/16 # dp validation. https://rpubs.com/pjmurphy/313180
+
+greg = gregariousness(links,nodes)
+degree(dir_net, mode="out")/16 #greg validation.https://rpubs.com/pjmurphy/313180
+
+#closeness_centrality = cc(undir_net, edgelist)
+
+find_shortest_path(undir_net, "s07", "s14")
+shortest_paths(
+  undir_net,
+  "s07",
+  "s14"
+)
+# #plot(net, edge.arrow.size=.4,vertex.label=NA)
+# 
+# #remove loops 
+# #net <- simplify(net, remove.multiple = F, remove.loops = T)
+# #plot(net, edge.arrow.size=.4,vertex.label=NA)
+# 
+# 
+# # #save edge list etc
+# 
+# # 
+# # adjacency = as_adjacency_matrix(net, attr="weight")
+# 
+# 
+# 
+# 
+# ## As the net is an object, it can be altered like this
+# 
+# # Generate colors based on media type:
+# 
+# colrs <- c("gray50", "tomato", "gold")
+# 
+# V(net)$color <- colrs[V(net)$media.type]
+# 
+# 
+# 
+# # Set node size based on audience size:
+# 
+# #V(net)$size <- V(net)$audience.size*0.7
+# 
+# 
+# 
+# # The labels are currently node IDs.
+# 
+# # Setting them to NA will render no labels:
+# 
+# V(net)$label.color <- "black"
+# 
+# V(net)$label <- NA
+# 
+# 
+# 
+# # Set edge width based on weight:
+# 
+# #E(net)$width <- E(net)$weight/6
+# 
+# 
+# 
+# #change arrow size and edge color:
+# 
+# E(net)$arrow.size <- .2
+# 
+# E(net)$edge.color <- "gray80"
+# 
+# 
+# 
+# E(net)$width <- 1+E(net)$weight/12
+# 
+# x11()
+# plot(net, edge.arrow.size=.4, edge.curved=.1, vertex.label=V(net), vertex.label.color="black") 
+# 
+# legend(x=-1.5, y=-1.1, c("Newspaper","Television", "Online News"), pch=21,
+#        
+#        col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
 
 
 
 # 
-# #3rd party degree per node 
-# degree(
-#   net,
-#   v = V(net),
-#   mode ="total",
-#   loops = TRUE,
-#   normalized = FALSE
-# )
 
-lcc_list = lcc(links, nodes)
-dc = degree_centrality(links, nodes)
-dp = degree_prestige(links, nodes)
-
-greg = gregariousness(links,nodes)

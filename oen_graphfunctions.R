@@ -4,110 +4,80 @@
 ### all functions
 
 
-## local cluster coefficient
-# https://en.wikipedia.org/wiki/Clustering_coefficient
-
-# all the links it has
-# ___________________________
-# all the links it could have
-
-lcc = function(links, nodes){
-  #number of nodes (vertices) in the neighbourhood
-  all_lcc = list()
+find_neighbour_nodes = function(edgelist, name){
+  #indeces of rows containing this name, (index > dim(edgelist)[1]) - dim(edgelist)[1]
+  row_indeces = which(edgelist==name)
   
-  place_in_list = 0
-  idx = 1
-  for(i in table(links$from)){
-    lcc_iter = 0
-    Ki = unname(i)
-
-    number_of_links = 0
-    neighbour_name = links$to[place_in_list:(place_in_list+Ki)]
-    for(from in neighbour_name){
-      match_indeces = which(links$from == from)
-      for(to in neighbour_name){
-        if(from != to){
-          corresponding_names = links$to[match_indeces]
-
-          if(to %in% corresponding_names){
-            number_of_links = number_of_links+1
-          }
-        }
-      }
-      
-    }
-    
-    if(Ki > 1){
-      lcc_iter = number_of_links/(Ki*(Ki-1))
-    }
-    else{
-      lcc_iter = 0
-    }
-    
-    #print(lcc_iter)
-    
-    all_lcc = append(all_lcc, lcc_iter)
-    names(all_lcc)[idx] = names(table(links$from)[idx])
-    
-    idx = idx+1
-  }
-  return(all_lcc)
+  #wrap it around to get the indeces in the second column as well
+  row_indeces[row_indeces > dim(edgelist)[1]] = row_indeces[row_indeces > dim(edgelist)[1]] - dim(edgelist)[1]
+  
+  #get a vector of all connections and filter the node we look at right now
+  all_connections = as.vector(edgelist[row_indeces,])
+  filter = all_connections == name
+  all_connections = all_connections[!filter]
 }
 
-# problem: $from has 16 unique in them, $to has 17
-# meaning 1 node doesn't have any arrows pointing away
-# can this one then form a cluster..?
 
+lcc = function(edgelist){
+  ## local cluster coefficient
+  # https://en.wikipedia.org/wiki/Clustering_coefficient
+  
+  # all the links it has
+  # ___________________________
+  # all the links it could have
+  
+  
+  lcc_list = list()
+  idx = 1
+  for(node in sort(unique(as.vector(edgelist)))){
+    lcc_iter = 0
+    all_connections = find_neighbour_nodes(edgelist, node)
+    Ki = length(all_connections)
+    
+    #find the clique
+    num_of_links = 0
+    for(neighbour in all_connections){
+      find_clique = find_neighbour_nodes(edgelist, neighbour)
+      found = find_clique %in% all_connections
+      num_of_links = num_of_links + sum(found)
+    }
+    num_of_links = num_of_links
+    
+    if(Ki > 1){
+      lcc_iter = num_of_links/(Ki*(Ki-1))
+    }
 
+    
+    lcc_list = append(lcc_list, lcc_iter)
+    names(lcc_list)[idx] = node
+    idx = idx + 1
+    
+  }
+  return(lcc_list)
 
-degree_centrality = function(links, nodes){
+}
+  
+
+degree_centrality = function(edgelist){
   degree_centr_list = list()
-  degree_list = list()
-  total_freq_to = table(links$to)
-  total_freq_from = table(links$from)
-  total_nodes = dim(nodes)[1]
-  max_degree = total_nodes - 1
-  
-  idx=1
-  
-  for(name in nodes$id){
-
-    #check if it occurs in the lists
-    to_na = (name %in% links$to)
-    from_na = (name %in% links$from)
-    
-    degree = 0
-
-    #if there is no arrow pointing to/from, 
-    #it returns NA and breaks the calc
-    if(!from_na){
-      degree = unname(total_freq_to[name])
-    }
-    else if(!to_na){
-      degree = unname(total_freq_from[name])
-    }
-    else{
-      degree = unname(total_freq_to[name]) + unname(total_freq_from[name])
-    }
-    
+  max_nodes = length(table(edgelist))
+  max_degree = max_nodes - 1
+  idx = 1
+  for(node in table(edgelist)){
+    degree = unname(node)
     degree_centr = degree/max_degree
 
     degree_centr_list = append(degree_centr_list, degree_centr)
-    degree_list = c(degree_list, degree)
-    names(degree_centr_list)[idx] = name
-    
+    #degree_list = c(degree_list, degree)
+    names(degree_centr_list)[idx] = names(table(edgelist))[idx]
     idx = idx+1
   }
-  # print('degree per node:')
-  # for(item in degree_list){
-  #   cat(item)
-  #   cat(' ')
-  # }
+  
   return(degree_centr_list)
+  
 }
 
-
-#indegree
+#indegree #using the directed net
 degree_prestige = function(links, nodes){
   degree_prest_list = list()
   total_freq_to = table(links$to)
@@ -145,7 +115,7 @@ degree_prestige = function(links, nodes){
 
 
 
-#outdegree
+#outdegree #using the directed net
 gregariousness = function(links, nodes){
   greg_list = list()
   fromtal_freq_from = table(links$from)
@@ -182,6 +152,10 @@ gregariousness = function(links, nodes){
 }
 
 
+####
+# Closeness Centrality and Proximity Prestige
+####
+
 #https://www.r-bloggers.com/2020/10/finding-the-shortest-path-with-dijkstras-algorithm/
 #Closeness Centrality and Proximity Prestige
 path_length = function(path) {
@@ -206,9 +180,11 @@ find_shortest_path <- function(graph, start, end, path = c()) {
   # initialize shortest path as NULL
   shortest <- NULL
   # loop through all nodes linked from the current node (given in start)
-  for (node in graph[[start]]) {
+  node_list = graph[[start]]
+  for (node in node_list) {
+    
     # proceed only if linked node is not already in path
-    if (!(node %in% path)) {
+    if (!(any(node %in% path))) {
       # recursively call function for finding shortest path with node as start and assign it to newpath
       newpath <- find_shortest_path(graph, node, end, path)
       # if newpath is shorter than shortest so far assign newpath to shortest
@@ -220,5 +196,32 @@ find_shortest_path <- function(graph, start, end, path = c()) {
   return(shortest)
 }
 
+
+#closeness centrality
+
+cc = function(net, edgelist){
+  AvDist = vector(length = length(V(net)$name))
+  Dist = matrix(NA, nrow = length(V(net)$name), ncol = length(V(net)$name))
+  max_nodes = length(table(edgelist))
+  max_degree = max_nodes - 1
+  
+  i=1
+  for(start in V(net)$name){
+    
+    j=1
+    for(end in V(net)$name){
+      shortest_path = find_shortest_path(net, start, end)
+      print(shortest_path)
+      #length_shortest_path = path_length(shortest_path)
+      #Dist[i,j] = length_shortest_path
+      j = j+1
+    }
+    #AvDist[i] = sum(Dist[i,])
+    i = i+1
+  }
+  cc_list = 1/AvDist
+  
+  return(cc_list)
+}
 
 
