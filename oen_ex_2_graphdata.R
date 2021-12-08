@@ -76,14 +76,29 @@ degree(dir_net, mode="in")/16 # dp validation. https://rpubs.com/pjmurphy/313180
 greg = gregariousness(links,nodes)
 degree(dir_net, mode="out")/16 #greg validation.https://rpubs.com/pjmurphy/313180
 
-#closeness_centrality = cc(undir_net, edgelist)
+closeness_centrality = cc(undir_net, edgelist)
 
-find_shortest_path(undir_net, "s07", "s14")
-shortest_paths(
+shortest_path(undir_net, "s07", "s14")
+# sp = shortest_paths(
+#   undir_net,
+#   "s08",
+#   "s14"
+# )
+# 
+# sho_pa = names(sp$vpath[[1]])
+# 
+# path_length(undir_net, sho_pa)
+
+cl = closeness(
   undir_net,
-  "s07",
-  "s14"
+  vids = V(undir_net),
+  mode = "total",
+  weights = NULL,
+  normalized = FALSE
 )
+
+unname(cl) == closeness_centrality
+
 # #plot(net, edge.arrow.size=.4,vertex.label=NA)
 # 
 # #remove loops 

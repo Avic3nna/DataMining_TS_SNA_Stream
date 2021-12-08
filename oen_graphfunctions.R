@@ -158,17 +158,32 @@ gregariousness = function(links, nodes){
 
 #https://www.r-bloggers.com/2020/10/finding-the-shortest-path-with-dijkstras-algorithm/
 #Closeness Centrality and Proximity Prestige
-path_length = function(path) {
+path_length = function(graph,path) {
   # if path is NULL return infinite length
   if (is.null(path)) return(Inf)
   
   # get all consecutive nodes
-  pairs = cbind(values = path[-length(path)], ind = path[-1])
-  # join with G and sum over weights
-  return(sum(merge(pairs, G)[ , "weights"]))
+  path_length_val = 0
+  # print(length(path))
+  # print(seq(along = 1:(length(path)-1)))
+  if(length(path) > 1){
+    # print(path)
+    # print(path[1])
+    
+    for(node in seq(along = 1:(length(path)-1))){
+      # print(path[node])
+      # print(path[node+1])
+      # print(graph[path[node], path[node+1]])
+      path_length_val = path_length_val + graph[path[node], path[node+1]]
+    }
+  }
+
+  return(path_length_val)
 }
 
-find_shortest_path <- function(graph, start, end, path = c()) {
+
+#dijkstra algorithm
+shortest_path <- function(graph, start, end, path = c()) {
   # if there are no nodes linked from current node (= dead end) return NULL
   if (is.null(graph[[start]])) return(NULL)
   # add next node to path so far
@@ -181,14 +196,14 @@ find_shortest_path <- function(graph, start, end, path = c()) {
   shortest <- NULL
   # loop through all nodes linked from the current node (given in start)
   node_list = graph[[start]]
-  for (node in node_list) {
+  for (node in names(node_list[[1]])) {
     
     # proceed only if linked node is not already in path
-    if (!(any(node %in% path))) {
+    if (!(node %in% path)) {
       # recursively call function for finding shortest path with node as start and assign it to newpath
-      newpath <- find_shortest_path(graph, node, end, path)
+      newpath <- shortest_path(graph, node, end, path)
       # if newpath is shorter than shortest so far assign newpath to shortest
-      if (path_length(newpath) < path_length(shortest))
+      if (path_length(graph, newpath) < path_length(graph, shortest))
         shortest <- newpath
     }
   }
@@ -198,7 +213,6 @@ find_shortest_path <- function(graph, start, end, path = c()) {
 
 
 #closeness centrality
-
 cc = function(net, edgelist){
   AvDist = vector(length = length(V(net)$name))
   Dist = matrix(NA, nrow = length(V(net)$name), ncol = length(V(net)$name))
@@ -207,16 +221,21 @@ cc = function(net, edgelist){
   
   i=1
   for(start in V(net)$name){
-    
+    # print('start')
+    # print(start)
     j=1
     for(end in V(net)$name){
-      shortest_path = find_shortest_path(net, start, end)
-      print(shortest_path)
-      #length_shortest_path = path_length(shortest_path)
-      #Dist[i,j] = length_shortest_path
+      # print('end')
+      # print(end)
+      sp = shortest_paths(net, start, end)
+      sho_pa = names(sp$vpath[[1]])
+      length_shortest_path = path_length(net,sho_pa)
+      Dist[i,j] = length_shortest_path
       j = j+1
     }
-    #AvDist[i] = sum(Dist[i,])
+    
+    AvDist[i] = sum(Dist[i,])
+    # print(Dist[i,])
     i = i+1
   }
   cc_list = 1/AvDist
