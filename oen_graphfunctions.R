@@ -77,77 +77,37 @@ degree_centrality = function(edgelist){
   
 }
 
-#indegree #using the directed net
-degree_prestige = function(links, nodes){
-  degree_prest_list = list()
-  total_freq_to = table(links$to)
-  total_nodes = dim(nodes)[1]
-  max_degree = total_nodes - 1
-  
-  idx=1
-  
-  for(name in nodes$id){
-    
-    #check if it occurs in the lists
-    to_na = (name %in% links$to)
-    
-    indegree = 0
-    
-    #if there is no arrow pointing to/from, 
-    #it returns NA and breaks the calc
-    if(to_na){
-      indegree = unname(total_freq_to[name])
-    }
-    else{
-      indegree = 0
-    }
-    
-    degree_prest = indegree/max_degree
-    
-    degree_prest_list = append(degree_prest_list, degree_prest)
-    names(degree_prest_list)[idx] = name
-    
-    idx = idx+1
-  }
 
+degree_prestige = function(net){
+  #dir_net[] #[i,] = from, [,i] = to
+  
+  degree_prest_list = list()
+  max_degree = length(V(net)) - 1
+  
+  for(i in 1:(length(V(net)))){
+    indegree = sum(dir_net[,i] != 0)
+    degree_prest = indegree/max_degree
+    degree_prest_list = append(degree_prest_list, degree_prest)
+    names(degree_prest_list)[i] = V(dir_net)[i]
+  }
   return(degree_prest_list)
 }
 
 
 
 #outdegree #using the directed net
-gregariousness = function(links, nodes){
+gregariousness = function(net){
   greg_list = list()
-  fromtal_freq_from = table(links$from)
-  fromtal_nodes = dim(nodes)[1]
-  max_degree = fromtal_nodes - 1
   
-  idx=1
+  degree_prest_list = list()
+  max_degree = length(V(net)) - 1
   
-  for(name in nodes$id){
-    
-    #check if it occurs in the lists
-    from_na = (name %in% links$from)
-    
-    outdegree = 0
-    
-    #if there is no arrow pointing from/from, 
-    #it returns NA and breaks the calc
-    if(from_na){
-      outdegree = unname(fromtal_freq_from[name])
-    }
-    else{
-      outdegree = 0
-    }
-    
+  for(i in 1:(length(V(net)))){
+    outdegree = sum(dir_net[i,] != 0)
     greg = outdegree/max_degree
-    
     greg_list = append(greg_list, greg)
-    names(greg_list)[idx] = name
-    
-    idx = idx+1
+    names(greg_list)[i] = V(dir_net)[i]
   }
-  
   return(greg_list)
 }
 
@@ -157,58 +117,21 @@ gregariousness = function(links, nodes){
 ####
 
 #https://www.r-bloggers.com/2020/10/finding-the-shortest-path-with-dijkstras-algorithm/
-#Closeness Centrality and Proximity Prestige
+#Closeness Centrality
 path_length = function(graph,path) {
-  # if path is NULL return infinite length
+
   if (is.null(path)) return(Inf)
   
-  # get all consecutive nodes
   path_length_val = 0
-  # print(length(path))
-  # print(seq(along = 1:(length(path)-1)))
+  
   if(length(path) > 1){
-    # print(path)
-    # print(path[1])
     
     for(node in seq(along = 1:(length(path)-1))){
-      # print(path[node])
-      # print(path[node+1])
-      # print(graph[path[node], path[node+1]])
       path_length_val = path_length_val + graph[path[node], path[node+1]]
     }
   }
 
   return(path_length_val)
-}
-
-
-#dijkstra algorithm
-shortest_path <- function(graph, start, end, path = c()) {
-  # if there are no nodes linked from current node (= dead end) return NULL
-  if (is.null(graph[[start]])) return(NULL)
-  # add next node to path so far
-  path <- c(path, start)
-  
-  # base case of recursion: if end is reached return path
-  if (start == end) return(path)
-  
-  # initialize shortest path as NULL
-  shortest <- NULL
-  # loop through all nodes linked from the current node (given in start)
-  node_list = graph[[start]]
-  for (node in names(node_list[[1]])) {
-    
-    # proceed only if linked node is not already in path
-    if (!(node %in% path)) {
-      # recursively call function for finding shortest path with node as start and assign it to newpath
-      newpath <- shortest_path(graph, node, end, path)
-      # if newpath is shorter than shortest so far assign newpath to shortest
-      if (path_length(graph, newpath) < path_length(graph, shortest))
-        shortest <- newpath
-    }
-  }
-  # return shortest path
-  return(shortest)
 }
 
 
@@ -221,12 +144,9 @@ cc = function(net, edgelist){
   
   i=1
   for(start in V(net)$name){
-    # print('start')
-    # print(start)
     j=1
     for(end in V(net)$name){
-      # print('end')
-      # print(end)
+
       sp = shortest_paths(net, start, end)
       sho_pa = names(sp$vpath[[1]])
       length_shortest_path = path_length(net,sho_pa)
@@ -241,6 +161,125 @@ cc = function(net, edgelist){
   cc_list = 1/AvDist
   
   return(cc_list)
+}
+
+pp = function(net, nodes){
+  # directed net!
+  
+ #need AvDist again, but now only from nodes who can reach this particular node
+ #so perhaps the indegree is useful here, because those nodes can reach our node
+  #then we calculate and sum the distances from those nodes to us,
+  # and divide by the amount of nodes
+  # calc influencefraction = number of influenced nodes/max degree
+  # Pp = influencefrac/avdist
+  
+  num_of_nodes = length(nodes$id)
+  
+  AvDist = vector(length = num_of_nodes)
+  prox_prest = vector(length = num_of_nodes)
+  InfluenceFrac = vector(length = num_of_nodes)
+  Dist = matrix(NA, nrow = num_of_nodes, ncol = num_of_nodes)
+  max_degree = num_of_nodes - 1
+  
+  
+
+  i=1
+  for(name in nodes$id){
+    #number of influenced nodes
+    matches = (links$to == name)
+
+    num_influencers = sum(matches)
+    influencers = links$from[matches]
+    
+    
+    j=1
+    for(neighbour in influencers){
+      node_path = c(neighbour, name) #from j to i (see book)
+      length_path = path_length(net,node_path)
+      Dist[j,i] = length_path
+      j = j+1
+    }
+
+    i = i+1
+  }
+  
+  for(i in seq(along = 1:num_of_nodes)){
+      AvDist[i] = sum(na.omit(Dist[,i]))/num_influencers #take the whole column
+      InfluenceFrac[i] = num_influencers/max_degree
+      prox_prest[i] = InfluenceFrac[i]/AvDist[i]
+  }
+  
+  return(prox_prest)
+}
+
+
+#betweenness centrality
+#https://stackoverflow.com/questions/37861070/get-all-shortest-paths-help-file-on-nrgeo
+#dir net
+bc <- function(net) {
+  len = dim(net[])[1]
+  result <- vector(length = len)
+
+  for(i in 1:len) {
+    fraction <- 0
+    matches <- 0
+    lnth = 0
+    for(j in 1:len) {
+      if(i != j){
+        #get all shortest paths from node j to everything but node j
+        sp = suppressWarnings(all_shortest_paths(net,V(net)[j],V(net)[-c(j,i)], mode = 'in')$res)
+
+        #get the amount of paths in total it returns
+        lnth = lnth + length(sp)
+
+        #get the amount of matches that node i is present in the paths
+        matches = matches + sum(sapply(sp,function(x){V(net)[i] %in% x}))
+      }
+
+    }
+    # print(matches)
+    # print('/')
+    # print(lnth)
+    fraction = matches /lnth
+    result[i]<-fraction #/ ((len)*(len-1))
+  }
+  return(result)
+}
+
+
+
+#common neighbours
+#directed graph
+cn = function(net){
+  
+  common_neighs = matrix(NA, nrow = length(V(net)), ncol = length(V(net)))
+  
+  for(i in 1:(length(V(net)))){
+    neigh_i = neighbors(net, i)
+    for(j in 1:(length(V(net)))){
+      neigh_j = neighbors(net, j)
+      common_neighs[i,j] = length(intersection(neigh_i, neigh_j))
+    }
+    
+  }
+  return(common_neighs)
+}
+
+
+#jaccard measure
+jm = function(net){
+  
+  jaccard = matrix(NA, nrow = length(V(net)), ncol = length(V(net)))
+  
+  for(i in 1:(length(V(net)))){
+    neigh_i = neighbors(net, i)
+    for(j in 1:(length(V(net)))){
+      neigh_j = neighbors(net, j)
+      jaccard[i,j] = length(intersection(neigh_i, neigh_j))/length(union(neigh_i, neigh_j))
+    }
+    
+  }
+  return(jaccard)
 }
 
 

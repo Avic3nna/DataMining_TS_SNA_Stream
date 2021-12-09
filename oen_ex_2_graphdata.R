@@ -30,12 +30,6 @@ source('./oen_graphfunctions.R')
 nodes = read.csv("./Data/netscix2016/Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
 links = read.csv("./Data/netscix2016/Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
 
-head(nodes)
-head(links)
-nrow(nodes)
-length(unique(nodes$id))
-nrow(links)
-nrow(unique(links[,c("from", "to")]))
 links = aggregate(links[,3], links[,-3], sum)
 links = links[order(links$from, links$to),]
 colnames(links)[4] = "weight"
@@ -49,16 +43,32 @@ undir_net = graph_from_data_frame(d=links, vertices=nodes, directed=F)
 
 #remove duplicates
 undir_net <- simplify(undir_net, remove.multiple = T, remove.loops = T)
+dir_net <- simplify(dir_net, remove.multiple = T, remove.loops = T)
+
 
 x11()
-plot(undir_net)
+plot(dir_net)
 
 
 #get all the edges (node-node) of the undirected graph
 edgelist = as_edgelist(undir_net, names=T)
 
+#get adjacency matrix
+adjacency_matrix = as_adjacency_matrix(
+  dir_net,
+  type = c("both", "upper", "lower"),
+  attr = NULL,
+  edges = FALSE,
+  names = TRUE,
+  sparse = igraph_opt("sparsematrices")
+)
+
 lcc_list = lcc(edgelist)
-#transitivity(undir_net, type = 'local') #lcc confirmation
+transitivity(undir_net, type = 'local') #lcc confirmation
+#check
+as.vector(lcc_list) == transitivity(undir_net, type = 'local')
+
+
 dc = degree_centrality(edgelist)
 
 degree(
@@ -69,101 +79,77 @@ degree(
   normalized = FALSE
 )/16 #dc confirmation, max degree = 16
 
+#check
+dc == degree(
+  undir_net,
+  v = V(undir_net),
+  mode ="total",
+  loops = TRUE,
+  normalized = FALSE
+)/16
+
+
 #using the directed net
-dp = degree_prestige(links, nodes)
+dp = degree_prestige(dir_net)
 degree(dir_net, mode="in")/16 # dp validation. https://rpubs.com/pjmurphy/313180
 
-greg = gregariousness(links,nodes)
+#check
+dp == degree(dir_net, mode="in")/16
+
+greg = gregariousness(dir_net)
 degree(dir_net, mode="out")/16 #greg validation.https://rpubs.com/pjmurphy/313180
+
+#check
+greg == degree(dir_net, mode="out")/16
 
 closeness_centrality = cc(undir_net, edgelist)
 
-shortest_path(undir_net, "s07", "s14")
-# sp = shortest_paths(
-#   undir_net,
-#   "s08",
-#   "s14"
-# )
-# 
-# sho_pa = names(sp$vpath[[1]])
-# 
-# path_length(undir_net, sho_pa)
-
 cl = closeness(
   undir_net,
-  vids = V(undir_net),
+  #vids = V(undir_net),
   mode = "total",
   weights = NULL,
   normalized = FALSE
 )
 
+#check
 unname(cl) == closeness_centrality
 
-# #plot(net, edge.arrow.size=.4,vertex.label=NA)
-# 
-# #remove loops 
-# #net <- simplify(net, remove.multiple = F, remove.loops = T)
-# #plot(net, edge.arrow.size=.4,vertex.label=NA)
-# 
-# 
-# # #save edge list etc
-# 
-# # 
-# # adjacency = as_adjacency_matrix(net, attr="weight")
-# 
-# 
-# 
-# 
-# ## As the net is an object, it can be altered like this
-# 
-# # Generate colors based on media type:
-# 
-# colrs <- c("gray50", "tomato", "gold")
-# 
-# V(net)$color <- colrs[V(net)$media.type]
-# 
-# 
-# 
-# # Set node size based on audience size:
-# 
-# #V(net)$size <- V(net)$audience.size*0.7
-# 
-# 
-# 
-# # The labels are currently node IDs.
-# 
-# # Setting them to NA will render no labels:
-# 
-# V(net)$label.color <- "black"
-# 
-# V(net)$label <- NA
-# 
-# 
-# 
-# # Set edge width based on weight:
-# 
-# #E(net)$width <- E(net)$weight/6
-# 
-# 
-# 
-# #change arrow size and edge color:
-# 
-# E(net)$arrow.size <- .2
-# 
-# E(net)$edge.color <- "gray80"
-# 
-# 
-# 
-# E(net)$width <- 1+E(net)$weight/12
-# 
-# x11()
-# plot(net, edge.arrow.size=.4, edge.curved=.1, vertex.label=V(net), vertex.label.color="black") 
-# 
-# legend(x=-1.5, y=-1.1, c("Newspaper","Television", "Online News"), pch=21,
-#        
-#        col="#777777", pt.bg=colrs, pt.cex=2, cex=.8, bty="n", ncol=1)
+
+prox_prest = pp(dir_net, nodes)
+prox_prest
 
 
 
-# 
+#### under construction
+bc(dir_net)
 
+igraph::betweenness(
+  dir_net,
+  v = V(dir_net),
+  directed = TRUE,
+  weights = NULL,
+  nobigint = FALSE,
+  normalized = FALSE)
+
+####
+
+
+cn(undir_net)
+
+
+
+
+#### 
+jm3 = similarity(
+  undir_net,
+  vids = V(undir_net),
+  mode = "total",
+  loops = FALSE,
+  method = "jaccard"
+)
+
+jmm = jm(undir_net)
+
+#check
+jmm == jm3
