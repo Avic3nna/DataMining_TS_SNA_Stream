@@ -214,11 +214,10 @@ pp = function(net, nodes){
 
 
 #betweenness centrality
-#https://stackoverflow.com/questions/37861070/get-all-shortest-paths-help-file-on-nrgeo
 #dir net
 bc <- function(net) {
   len = dim(net[])[1]
-  result = vecto=r(length = len)
+  result = vector(length = len)
 
   for(node in 1:len) {
     fraction = 0
