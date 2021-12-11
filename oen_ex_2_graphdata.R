@@ -130,7 +130,7 @@ igraph::betweenness(
   directed = TRUE,
   weights = NULL,
   nobigint = FALSE,
-  normalized = FALSE)
+  normalized = FALSE)/(16*17)
 
 ####
 

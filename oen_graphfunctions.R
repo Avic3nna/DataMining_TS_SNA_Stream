@@ -218,30 +218,29 @@ pp = function(net, nodes){
 #dir net
 bc <- function(net) {
   len = dim(net[])[1]
-  result <- vector(length = len)
+  result = vecto=r(length = len)
 
-  for(i in 1:len) {
-    fraction <- 0
-    matches <- 0
-    lnth = 0
+  for(node in 1:len) {
+    fraction = 0
+
     for(j in 1:len) {
-      if(i != j){
-        #get all shortest paths from node j to everything but node j
-        sp = suppressWarnings(all_shortest_paths(net,V(net)[j],V(net)[-c(j,i)], mode = 'in')$res)
+      for(k in 1:len) {
+        if (j != node && k != node){
+          # All shortest paths from j to k
+          q_jk = suppressWarnings(all_shortest_paths(net,j,k, mode = 'in')$res)
+          # Find the amount of matches of the node in the shortest paths
+          if(length(q_jk) > 0){
+            q_jk_i = sum(sapply(q_jk,function(x){node %in% x}))
+            # Increment fraction with the ratio
+            fraction = fraction +  q_jk_i / length(q_jk)
+          }
 
-        #get the amount of paths in total it returns
-        lnth = lnth + length(sp)
-
-        #get the amount of matches that node i is present in the paths
-        matches = matches + sum(sapply(sp,function(x){V(net)[i] %in% x}))
+        }
       }
-
     }
-    # print(matches)
-    # print('/')
-    # print(lnth)
-    fraction = matches /lnth
-    result[i]<-fraction #/ ((len)*(len-1))
+    
+    # Fraction divided by the max possible combinations
+    result[node] = fraction / ((len)*(len-1))
   }
   return(result)
 }
