@@ -2,8 +2,25 @@
 # this is demo script for text data mining
 # 
 # clear everything
-rm(list = ls())
-cname <- file.path("/Users/sven/Google Drive/Teaching/Data_Mining_2021/Practice_12/Texts")
+rm(list=ls())
+set.seed(1337)
+
+packages_used = c("rstudioapi", "tm")
+
+for(package in packages_used){
+  if(package %in% rownames(installed.packages()) == FALSE) {
+    install.packages(package)
+  }
+}
+
+setwd_current_path = function(){
+  library(rstudioapi)
+  current_path = getActiveDocumentContext()$path
+  setwd(dirname(current_path)) #get this current folder
+  print(getwd())
+}
+setwd_current_path()
+cname <- file.path("./Data/Text/")
 dir(cname) #check loaded texts
 
 # load package tm  which is framework for text data mining / NLP
@@ -21,7 +38,7 @@ docs <- tm_map(docs,removePunctuation)   #remove punctuation symbols
 docs <- tm_map(docs, removeNumbers)   #remove numbers
 docs <- tm_map(docs, tolower)   #remove capitalization - to lowcase
 docs <- tm_map(docs, removeWords, c("the", "and", stopwords("english")))   #remove common words such as "a, and, also, the"
-docs <- tm_map(docs, removeWords, c("tennis", "football"))   #remove particular words
+docs <- tm_map(docs, removeWords, c("white", "black", "thats", "just"))   #remove particular words
 docs <- tm_map(docs, stripWhitespace)  #remove whitespaces from previous eliminations
 #for (j in seq(docs)) {
 #  docs[[j]] <- gsub("????", " ", docs[[j]])  #not well translated character
@@ -82,7 +99,6 @@ library(SnowballC)
 library(wordcloud)
 library(RColorBrewer)
 
-set.seed(1234)
 freq = data.frame(sort(colSums(as.matrix(dtm)), decreasing=TRUE))
 wordcloud::wordcloud(rownames(freq), freq[,1], scale=c(4, .1), max.words=50, colors=brewer.pal(6, "Dark2")) #most frequently used 50 words
 
@@ -95,21 +111,39 @@ dtmss <- removeSparseTerms(dtm, 0.15) # This makes a matrix that is only 15% emp
 print(dtmss)
 
 library(cluster)   
-d <- dist(t(dtmss), method="euclidian")   
-fit <- hclust(d=d, method="complete")   # for a different look try substituting: method="ward.D"
+d <- dist(t(dtmss), method="manhattan")   
+fit <- hclust(d=d, method="ward.D")   # for a different look try substituting: method="ward.D"
 fit  
 plot(fit, hang=-1) #plot
 
 plot.new() #find number of clusters
 plot(fit, hang=-1)
-groups <- cutree(fit, k=3)   # "k=" defines the number of clusters you are using   
-rect.hclust(fit, k=3, border="red") # draw dendogram with red borders around the 6 clusters   
+groups <- cutree(fit, k=4)   # "k=" defines the number of clusters you are using   
+rect.hclust(fit, k=4, border="red") # draw dendogram with red borders around the 6 clusters   
 
 # K-means
 library(fpc)
 library(cluster)
 dtms <- removeSparseTerms(dtm, 0.15)
 d <- dist(t(dtms), method="manhattan")
-kfit <- kmeans(d, 2)
-clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0)
+#d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
+kfit <- kmeans(d, 4)
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = '4-means manhattan')
 
+
+# HDBSCAN
+library(dbscan)
+dtms <- removeSparseTerms(dtm, 0.15)
+d <- dist(t(dtms), method="manhattan")
+d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
+kfit <- hdbscan(d, 2)
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = 'HDBSCAN eps. 2 manhattan')
+
+
+#PAM k-Medioids
+library(cluster)
+dtms <- removeSparseTerms(dtm, 0.15)
+d <- dist(t(dtms), method="manhattan")
+#d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
+kfit <- pam(d, 4)
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = '4-mediods PAM')
