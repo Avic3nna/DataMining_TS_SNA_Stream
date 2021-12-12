@@ -48,13 +48,14 @@ dir_net <- simplify(dir_net, remove.multiple = T, remove.loops = T)
 #get all the edges (node-node) of the undirected graph
 edgelist = as_edgelist(undir_net, names=T)
 
-plot(dir_net)
+plot(undir_net)
 ######### END PRE-PROCESSING
 
 
 ######### BEGIN IMPLEMENTATION
 ### local clustering coefficient
 lcc_list = lcc(edgelist)
+lcc_list
 
 #third party check
 transitivity(undir_net, type = 'local') #lcc confirmation
@@ -63,7 +64,7 @@ as.vector(lcc_list) == transitivity(undir_net, type = 'local')
 
 ### degree centrality
 dc = degree_centrality(edgelist)
-
+dc
 
 #third party check
 igraph:: degree(
@@ -93,7 +94,7 @@ dp == igraph::degree(dir_net, mode="in")/16
 
 ### gregariousness
 greg = gregariousness(dir_net)
-
+greg
 #third party check
 igraph::degree(dir_net, mode="out")/16 #greg validation.https://rpubs.com/pjmurphy/313180
 greg == degree(dir_net, mode="out")/16
@@ -102,6 +103,7 @@ greg == degree(dir_net, mode="out")/16
 
 ### closeness centrality
 closeness_centrality = cc(undir_net, edgelist)
+closeness_centrality
 
 cl = igraph::closeness(
   undir_net,

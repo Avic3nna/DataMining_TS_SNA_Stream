@@ -34,15 +34,17 @@ inspect(docs[2]) #some data about a loaded text - order 2
 writeLines(as.character(docs[2])) #content of text 2
 
 # Preprocessing
+for (j in seq(docs)) {
+  docs[[j]][1] <- gsub("\n","",docs[[j]][1])  # Remove â€ from your string, docs[[j]])  #not well translated character
+  docs[[j]][1] <- gsub("â€”","",docs[[j]][1])
+  }
 docs <- tm_map(docs,removePunctuation)   #remove punctuation symbols
 docs <- tm_map(docs, removeNumbers)   #remove numbers
 docs <- tm_map(docs, tolower)   #remove capitalization - to lowcase
 docs <- tm_map(docs, removeWords, c("the", "and", stopwords("english")))   #remove common words such as "a, and, also, the"
-docs <- tm_map(docs, removeWords, c("white", "black", "thats", "just"))   #remove particular words
+docs <- tm_map(docs, removeWords, c("thats", "just", "can"))   #remove particular words
 docs <- tm_map(docs, stripWhitespace)  #remove whitespaces from previous eliminations
-#for (j in seq(docs)) {
-#  docs[[j]] <- gsub("????", " ", docs[[j]])  #not well translated character
-#}
+
 docs <- tm_map(docs, PlainTextDocument)   #prepare de document as text
 
 
@@ -87,12 +89,13 @@ print(p)
 
 #or ordered...
 p <- ggplot(subset(wf, freq>50), aes(x = reorder(word, -freq), y = freq)) +
-  geom_bar(stat = "identity") + 
-  theme(axis.text.x=element_text(angle=45, hjust=1))
+  geom_bar(stat = "identity", color = 'blue', fill = 'blue') + 
+  theme(axis.text.x=element_text(angle=45, hjust=1), plot.title = element_text(hjust = 0.5)) + 
+  xlab('Word') + ylab('Frequency')
 print(p)  
 
 #find correlations between terms
-findAssocs(dtm, c("will" , "american"), corlimit=0.85) #find correlations between words
+findAssocs(dtm, c("â€“" , "american"), corlimit=0.85) #find correlations between words
 
 #cloud of words
 library(SnowballC)
@@ -100,10 +103,18 @@ library(wordcloud)
 library(RColorBrewer)
 
 freq = data.frame(sort(colSums(as.matrix(dtm)), decreasing=TRUE))
+
+freq = tail(freq, -2)
+# freqf = freq[-1,]
+# freqf2 = data.frame(freqf)
+# freq = freqf2
 wordcloud::wordcloud(rownames(freq), freq[,1], scale=c(4, .1), max.words=50, colors=brewer.pal(6, "Dark2")) #most frequently used 50 words
 
+
+
 #plot words that occur at least 50 times
-wordcloud::wordcloud(rownames(freq), freq[,1], scale=c(4, .1), min.freq=25, colors=brewer.pal(6, "Dark2"))  #words used at least 25 times or more
+wordcloud::wordcloud(rownames(freq), freq[,1], scale=c(4, .1), min.freq=35, colors=brewer.pal(6, "Dark2"))
+title('Word cloud >35 word frequency')#words used at least 25 times or more
 
 #clustering by term similarity
 #hierarchical
@@ -125,19 +136,19 @@ rect.hclust(fit, k=4, border="red") # draw dendogram with red borders around the
 library(fpc)
 library(cluster)
 dtms <- removeSparseTerms(dtm, 0.15)
-d <- dist(t(dtms), method="manhattan")
-#d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
-kfit <- kmeans(d, 4)
-clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = '4-means manhattan')
+#d <- dist(t(dtms), method="euclidian")
+d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
+kfit <- kmeans(d, 2)
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = '2-means with Cosine')
 
 
 # HDBSCAN
 library(dbscan)
 dtms <- removeSparseTerms(dtm, 0.15)
 d <- dist(t(dtms), method="manhattan")
-d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
+#d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
 kfit <- hdbscan(d, 2)
-clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = 'HDBSCAN eps. 2 manhattan')
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = 'HDBSCAN eps. 2 Manhattan')
 
 
 #PAM k-Medioids
@@ -145,5 +156,5 @@ library(cluster)
 dtms <- removeSparseTerms(dtm, 0.15)
 d <- dist(t(dtms), method="manhattan")
 #d = proxy::dist(as.matrix(t(dtms)), method = "cosine")
-kfit <- pam(d, 4)
-clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = '4-mediods PAM')
+kfit <- pam(d, 2)
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0, main = '2-mediods PAM')
